@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Research Paper Recommender & RAG Assistant — Live Demo</title>
+<meta name="description" content="Browser-based portfolio demo of an academic paper recommender and source-grounded RAG workflow.">
+<style>
+:root{
+  --bg:#f5f8fc;--panel:#ffffff;--ink:#17283f;--muted:#64748b;
+  --line:#dbe6ef;--blue:#1f5d7a;--teal:#168287;--violet:#6b5bd2;
+  --soft:#edf7fb;--soft2:#f3f0ff;--soft3:#eaf8f4;--warn:#fff8e8;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:var(--ink);background:
+  radial-gradient(circle at 8% 0%,rgba(22,130,135,.10),transparent 24rem),
+  radial-gradient(circle at 92% 5%,rgba(107,91,210,.12),transparent 28rem),
+  var(--bg);
+}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:28px 0 60px}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:26px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:850}
+.logo{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--blue),var(--violet));font-weight:900}
+.nav small{color:var(--muted)}
+.hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr);gap:28px;align-items:center;
+  background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(247,251,254,.96));
+  border:1px solid var(--line);border-radius:28px;padding:clamp(22px,4vw,44px);overflow:hidden
+}
+.kicker{display:inline-block;padding:8px 12px;border-radius:999px;background:var(--soft);border:1px solid #d7eaf1;color:#1b607a;font-size:12px;font-weight:850;letter-spacing:.1em;text-transform:uppercase}
+h1{font-size:clamp(36px,6vw,64px);line-height:1.02;letter-spacing:-.04em;margin:16px 0 14px}
+.hero p{font-size:clamp(16px,2vw,19px);line-height:1.7;color:var(--muted);max-width:64ch}
+.hero img{width:100%;height:auto;display:block;max-height:430px;object-fit:contain}
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.pill{padding:8px 11px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:13px;font-weight:750;color:#405a70}
+.notice{margin:20px 0;padding:14px 16px;border:1px solid #f1dfae;background:var(--warn);border-radius:14px;color:#6f5b22;font-size:14px;line-height:1.55}
+.section{margin-top:34px}
+.section h2{font-size:clamp(24px,3vw,34px);margin:0 0 6px;letter-spacing:-.025em}
+.sub{color:var(--muted);margin:0 0 18px;line-height:1.6}
+.searchbox{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:20px}
+textarea,input,select,button{font:inherit}
+textarea,input,select{
+  width:100%;border:1px solid #ccd9e4;border-radius:14px;padding:13px 14px;background:#fff;color:var(--ink);outline:none
+}
+textarea{min-height:130px;resize:vertical}
+textarea:focus,input:focus,select:focus{border-color:#7fa8bd;box-shadow:0 0 0 3px rgba(31,93,122,.10)}
+.controls{display:grid;grid-template-columns:minmax(0,1fr) 170px 170px;gap:12px;margin-top:12px}
+button{border:0;border-radius:14px;padding:13px 16px;font-weight:850;cursor:pointer}
+button.primary{background:linear-gradient(135deg,var(--blue),var(--violet));color:#fff}
+button.secondary{background:#eef4f8;color:#294b63}
+button.ghost{background:#fff;border:1px solid var(--line);color:#294b63}
+button:disabled{opacity:.55;cursor:not-allowed}
+.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}
+.metric{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px}
+.metric span{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:800}
+.metric b{display:block;margin-top:5px;font-size:18px}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;min-width:0}
+.card-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.card h3{font-size:17px;line-height:1.35;margin:0;overflow-wrap:anywhere}
+.meta{color:var(--muted);font-size:13px;margin:7px 0 10px;overflow-wrap:anywhere}
+.abstract{font-size:14px;color:#42586a;line-height:1.6}
+.score{display:inline-block;padding:6px 9px;border-radius:999px;background:var(--soft2);color:#4d3d9e;font-size:12px;font-weight:850;white-space:nowrap}
+.choose{margin-top:13px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.choose label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:750}
+.choose input{width:auto}
+.analysis-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.analysis{border:1px solid var(--line);background:#fff;border-radius:16px;padding:15px;min-height:130px}
+.analysis b{display:block;margin-bottom:7px;color:#294b63}
+.analysis p{margin:0;color:#4a5f71;font-size:14px;line-height:1.6}
+.qa{display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:12px}
+.answer{margin-top:14px;border:1px solid var(--line);background:linear-gradient(135deg,var(--soft3),var(--soft2));border-radius:16px;padding:17px;line-height:1.65;color:#294154}
+.sources{margin-top:12px;display:grid;gap:9px}
+.source{border-left:4px solid #6a76b7;background:#fff;border-radius:10px;padding:11px 12px;font-size:13px;line-height:1.55}
+.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:18px}
+.step{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff;text-align:center;font-size:12px;font-weight:800;color:#3b5569}
+.empty{padding:24px;border:1px dashed #b9cbd8;border-radius:16px;color:var(--muted);text-align:center;background:rgba(255,255,255,.7)}
+.footer{margin-top:38px;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+@media(max-width:850px){
+  .hero{grid-template-columns:1fr}
+  .hero img{max-height:330px}
+  .controls{grid-template-columns:1fr}
+  .cards{grid-template-columns:1fr}
+  .analysis-grid{grid-template-columns:1fr}
+  .qa{grid-template-columns:1fr}
+  .flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .metrics{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .wrap{width:min(100% - 20px,1180px)}
+  .nav{align-items:flex-start}
+  h1{font-size:36px}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="nav">
+    <div class="brand"><div class="logo">AI</div><div>Research Paper Recommender<br><small>Browser Live Demo</small></div></div>
+    <small>Nafisa Tasneem Esha</small>
+  </div>
+
+  <section class="hero">
+    <div>
+      <span class="kicker">ML + Information Retrieval + RAG</span>
+      <h1>AI-Powered Research Paper Recommender & RAG Assistant</h1>
+      <p>Try the complete portfolio flow in your browser: enter a topic or abstract, rank relevant demo papers, select records, inspect grounded analysis, and ask questions over retrieved source text.</p>
+      <div class="pills">
+        <span class="pill">Browser TF-IDF</span><span class="pill">Cosine Similarity</span>
+        <span class="pill">Evidence Retrieval</span><span class="pill">Responsive UI</span>
+      </div>
+    </div>
+    <img src="assets/research_ai_hero.svg" alt="Research papers connected to semantic retrieval and a RAG assistant">
+  </section>
+
+  <div class="notice">
+    <b>Demo scope:</b> this static GitHub Pages version runs entirely in the browser on the included small demo collection.
+    It uses a local TF-IDF-style lexical representation and extractive evidence retrieval. It does <b>not</b> claim sentence-transformer or external-LLM execution in this static demo.
+  </div>
+
+  <section class="section">
+    <h2>1. Research Topic / Abstract</h2>
+    <p class="sub">Enter keywords, a topic, or an abstract. The browser demo calculates document similarity locally.</p>
+    <div class="searchbox">
+      <textarea id="query" aria-label="Research topic or abstract">retrieval augmented generation and dense passage retrieval</textarea>
+      <div class="controls">
+        <select id="example" aria-label="Example query">
+          <option value="">Choose an example query</option>
+          <option>retrieval augmented generation and dense passage retrieval</option>
+          <option>transformers for genome sequence understanding</option>
+          <option>explainable deep learning for computer vision</option>
+          <option>biomedical language models for question answering</option>
+        </select>
+        <select id="topk" aria-label="Number of recommendations">
+          <option value="3">Top 3</option>
+          <option value="5" selected>Top 5</option>
+          <option value="7">Top 7</option>
+        </select>
+        <button id="searchBtn" class="primary" type="button">Find Relevant Papers</button>
+      </div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><span>Indexed demo records</span><b id="countMetric">0</b></div>
+      <div class="metric"><span>Retrieval</span><b>Browser TF-IDF + cosine</b></div>
+      <div class="metric"><span>RAG mode</span><b>Extractive evidence</b></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>2. Top Recommended Papers</h2>
+    <p class="sub">Similarity is a ranking signal, not accuracy, confidence, or a calibrated probability.</p>
+    <div id="results" class="cards"></div>
+  </section>
+
+  <section class="section">
+    <h2>3. Selected Paper Analysis</h2>
+    <p class="sub">Analysis is conservative and limited to the available demo text. A research gap is not automatically asserted.</p>
+    <div id="analysis"></div>
+  </section>
+
+  <section class="section">
+    <h2>4. Ask Questions with RAG</h2>
+    <p class="sub">The static demo retrieves the most relevant sentences from selected papers and returns an extractive answer.</p>
+    <div class="qa">
+      <input id="question" value="What retrieval methods are described?" aria-label="Question">
+      <button id="askBtn" class="primary" type="button">Ask Selected Papers</button>
+    </div>
+    <div id="answer"></div>
+  </section>
+
+  <section class="section">
+    <h2>Project Flow</h2>
+    <div class="flow">
+      <div class="step">Research Topic / Abstract</div>
+      <div class="step">Find Relevant Papers</div>
+      <div class="step">Top Recommendations</div>
+      <div class="step">Select Papers</div>
+      <div class="step">Grounded Analysis</div>
+      <div class="step">Ask with RAG</div>
+    </div>
+  </section>
+
+  <div class="footer">
+    <span>Portfolio project by Nafisa Tasneem Esha</span>
+    <span><a href="https://github.com/esha2310/ai-research-paper-recommender-rag">GitHub repository</a> · <a href="https://esha2310.github.io/nafisa-tasneem-esha-portfolio/">Portfolio</a></span>
+  </div>
+</main>
+
+<script>
+const papers = [{"paper_id": 1706.03762, "title": "Attention Is All You Need", "authors": "Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, Illia Polosukhin", "year": 2017, "category": "Natural Language Processing", "abstract": "Introduces the Transformer, an encoder-decoder architecture built around attention rather than recurrent or convolutional sequence layers. The paper evaluates the approach on machine translation and also reports transfer to English constituency parsing.", "paper_url": "https://arxiv.org/abs/1706.03762"}, {"paper_id": 1810.04805, "title": "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding", "authors": "Jacob Devlin, Ming-Wei Chang, Kenton Lee, Kristina Toutanova", "year": 2018, "category": "Natural Language Processing", "abstract": "Presents BERT, a bidirectional Transformer language representation model pre-trained from unlabelled text and fine-tuned for downstream tasks. The reported experiments cover language understanding and question-answering benchmarks.", "paper_url": "https://arxiv.org/abs/1810.04805"}, {"paper_id": 1908.10084, "title": "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks", "authors": "Nils Reimers, Iryna Gurevych", "year": 2019, "category": "Semantic Search", "abstract": "Adapts BERT with siamese and triplet network structures to produce sentence embeddings that can be compared efficiently with cosine similarity. The work evaluates semantic textual similarity and transfer-learning tasks.", "paper_url": "https://arxiv.org/abs/1908.10084"}, {"paper_id": 2004.04906, "title": "Dense Passage Retrieval for Open-Domain Question Answering", "authors": "Vladimir Karpukhin, Barlas Oğuz, Sewon Min, Patrick Lewis, Ledell Wu, Sergey Edunov, Danqi Chen, Wen-tau Yih", "year": 2020, "category": "Information Retrieval", "abstract": "Develops a dual-encoder dense passage retriever for open-domain question answering and compares dense retrieval with a strong sparse baseline. The evaluation spans several open-domain QA datasets and studies top-k passage retrieval.", "paper_url": "https://arxiv.org/abs/2004.04906"}, {"paper_id": 2005.11401, "title": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks", "authors": "Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich Küttler, Mike Lewis, Wen-tau Yih, Tim Rocktäschel, Sebastian Riedel, Douwe Kiela", "year": 2020, "category": "Retrieval-Augmented Generation", "abstract": "Combines a pre-trained sequence-to-sequence generator with a dense external knowledge index so generation can condition on retrieved passages. The study evaluates two RAG formulations across knowledge-intensive NLP tasks and compares them with parametric and retrieve-and-extract baselines.", "paper_url": "https://arxiv.org/abs/2005.11401"}, {"paper_id": 1512.03385, "title": "Deep Residual Learning for Image Recognition", "authors": "Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun", "year": 2015, "category": "Computer Vision", "abstract": "Introduces residual learning to make very deep convolutional networks easier to optimise. The paper evaluates residual networks on ImageNet and CIFAR and also applies the learned representations to object-detection tasks.", "paper_url": "https://arxiv.org/abs/1512.03385"}, {"paper_id": 2010.11929, "title": "An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale", "authors": "Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani, Matthias Minderer, Georg Heigold, Sylvain Gelly, Jakob Uszkoreit, Neil Houlsby", "year": 2020, "category": "Computer Vision", "abstract": "Studies a Vision Transformer that processes an image as a sequence of patches without relying on a conventional convolutional backbone. The experiments use large-scale pre-training followed by transfer to multiple image-recognition benchmarks.", "paper_url": "https://arxiv.org/abs/2010.11929"}, {"paper_id": 1610.02391, "title": "Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization", "authors": "Ramprasaath R. Selvaraju, Michael Cogswell, Abhishek Das, Ramakrishna Vedantam, Devi Parikh, Dhruv Batra", "year": 2016, "category": "Explainable AI", "abstract": "Proposes Grad-CAM, which uses gradients flowing into a convolutional layer to create class-discriminative localisation maps. The paper demonstrates visual explanations across image classification, captioning, and visual question-answering settings.", "paper_url": "https://arxiv.org/abs/1610.02391"}, {"paper_id": 1901.08746, "title": "BioBERT: a pre-trained biomedical language representation model for biomedical text mining", "authors": "Jinhyuk Lee, Wonjin Yoon, Sungdong Kim, Donghyeon Kim, Sunkyu Kim, Chan Ho So, Jaewoo Kang", "year": 2019, "category": "Biomedical NLP", "abstract": "Adapts BERT to biomedical text by continuing pre-training on large biomedical corpora. The evaluation covers biomedical named-entity recognition, relation extraction, and question answering, with comparisons against general-domain BERT and earlier systems.", "paper_url": "https://arxiv.org/abs/1901.08746"}, {"paper_id": 2306.15006, "title": "DNABERT-2: Efficient Foundation Model and Benchmark For Multi-Species Genome", "authors": "Zhihan Zhou, Yanrong Ji, Weijian Li, Pratik Dutta, Ramana Davuluri, Han Liu", "year": 2023, "category": "Bioinformatics", "abstract": "Presents a genomic foundation model trained across multiple species and a benchmark for genome understanding. The approach changes tokenisation and positional treatment relative to the original DNABERT and evaluates a range of genomic tasks and species.", "paper_url": "https://arxiv.org/abs/2306.15006"}];
+
+const stop = new Set(("a an the and or but if while with without of to in on for from by as at into over under about this that these those is are was were be been being it its their they them we our you your using use used uses through across than can may also paper study work approach model models method methods").split(/\s+/));
+
+function tokens(text) {
+  return (text.toLowerCase().match(/[a-z0-9]+/g) || []).filter(t => t.length > 1 && !stop.has(t));
+}
+
+function buildTfidf(query, docs) {
+  const queryTokens = tokens(query);
+  const docTokens = docs.map(d => tokens(`${d.title} ${d.abstract} ${d.category}`));
+  const vocab = [...new Set(queryTokens.concat(...docTokens))];
+  const n = docTokens.length;
+  const idf = {};
+  for (const term of vocab) {
+    let df = 0;
+    for (const toks of docTokens) if (toks.includes(term)) df++;
+    idf[term] = Math.log((1 + n) / (1 + df)) + 1;
+  }
+  const vector = toks => {
+    const counts = {};
+    toks.forEach(t => counts[t] = (counts[t] || 0) + 1);
+    const len = Math.max(1, toks.length);
+    const v = {};
+    for (const [t,c] of Object.entries(counts)) v[t] = (c/len) * (idf[t] || 0);
+    return v;
+  };
+  const qv = vector(queryTokens);
+  const cosine = (a,b) => {
+    let dot=0,na=0,nb=0;
+    for (const [k,v] of Object.entries(a)) { na += v*v; if (b[k]) dot += v*b[k]; }
+    for (const v of Object.values(b)) nb += v*v;
+    return (!na || !nb) ? 0 : dot / Math.sqrt(na*nb);
+  };
+  return docs.map((d,i) => ({...d, score: cosine(qv, vector(docTokens[i]))})).sort((a,b)=>b.score-a.score);
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"})[c]);
+}
+
+function sentences(text) {
+  return String(text || "").split(/(?<=[.!?])\s+/).map(s=>s.trim()).filter(Boolean);
+}
+
+function extractByKeywords(text, words) {
+  const hits = sentences(text).filter(s => words.some(w => s.toLowerCase().includes(w))).slice(0,2);
+  return hits.join(" ") || "Not explicitly stated in the available demo text.";
+}
+
+let current = [];
+let selected = new Set();
+
+function runSearch() {
+  const q = document.getElementById("query").value.trim();
+  const k = Number(document.getElementById("topk").value);
+  const box = document.getElementById("results");
+  if (!q) {
+    box.innerHTML = '<div class="empty">Enter a topic or abstract first.</div>';
+    return;
+  }
+  current = buildTfidf(q, papers).slice(0,k);
+  selected = new Set(current.slice(0,2).map(p=>p.paper_id));
+  renderResults();
+  renderAnalysis();
+  document.getElementById("answer").innerHTML = "";
+}
+
+function renderResults() {
+  const box = document.getElementById("results");
+  box.innerHTML = current.map((p,i)=>`
+    <article class="card">
+      <div class="card-top">
+        <h3>${i+1}. ${esc(p.title)}</h3>
+        <span class="score">${p.score.toFixed(3)}</span>
+      </div>
+      <div class="meta">${esc(p.authors)} · ${esc(p.year)} · ${esc(p.category)}</div>
+      <div class="abstract">${esc(p.abstract)}</div>
+      <div class="choose">
+        <label><input type="checkbox" data-id="${esc(p.paper_id)}" ${selected.has(p.paper_id) ? "checked":""}> Select for analysis</label>
+        <a href="${esc(p.paper_url)}" target="_blank" rel="noopener">Source ↗</a>
+      </div>
+    </article>`).join("");
+  box.querySelectorAll('input[type="checkbox"]').forEach(el => {
+    el.addEventListener("change", () => {
+      if (el.checked) selected.add(el.dataset.id); else selected.delete(el.dataset.id);
+      renderAnalysis();
+      document.getElementById("answer").innerHTML="";
+    });
+  });
+}
+
+function renderAnalysis() {
+  const chosen = current.filter(p=>selected.has(p.paper_id));
+  const target = document.getElementById("analysis");
+  if (!chosen.length) {
+    target.innerHTML='<div class="empty">Select at least one recommended paper.</div>'; return;
+  }
+  target.innerHTML = chosen.map(p => {
+    const ss = sentences(p.abstract);
+    const summary = ss.slice(0,2).join(" ") || "No summary text available.";
+    const methods = extractByKeywords(p.abstract, ["method","model","approach","transformer","retrieval","encoder","attention","network"]);
+    const dataset = extractByKeywords(p.abstract, ["dataset","benchmark","corpus","imagenet","cifar","data"]);
+    const results = extractByKeywords(p.abstract, ["result","evaluate","evaluation","performance","outperform","effective","better"]);
+    const limitations = extractByKeywords(p.abstract, ["limitation","limited","challenge","however","future","shortcoming"]);
+    const gap = "No research gap is asserted automatically from this short demo record.";
+    return `
+      <article class="card" style="margin-bottom:14px">
+        <h3>${esc(p.title)}</h3>
+        <div class="analysis-grid" style="margin-top:14px">
+          ${[["AI Summary",summary],["Methods",methods],["Dataset",dataset],["Results",results],["Limitations",limitations],["Research Gap",gap]]
+            .map(x=>`<div class="analysis"><b>${x[0]}</b><p>${esc(x[1])}</p></div>`).join("")}
+        </div>
+      </article>`;
+  }).join("");
+}
+
+function ask() {
+  const q = document.getElementById("question").value.trim();
+  const chosen = current.filter(p=>selected.has(p.paper_id));
+  const out = document.getElementById("answer");
+  if (!q) { out.innerHTML='<div class="empty">Enter a question first.</div>'; return; }
+  if (!chosen.length) { out.innerHTML='<div class="empty">Select at least one paper first.</div>'; return; }
+
+  const passages = [];
+  chosen.forEach(p => sentences(p.abstract).forEach(s => passages.push({title:p.title,text:s})));
+  const ranked = buildTfidf(q, passages.map((x,i)=>({
+    paper_id:String(i),title:x.title,authors:"",year:"",category:"",abstract:x.text,paper_url:""
+  }))).slice(0,5);
+
+  if (/research gap|\bgap\b/i.test(q)) {
+    out.innerHTML = '<div class="answer"><b>Extractive answer:</b> A research gap is not claimed automatically from these short records. Use the retrieved passages for comparison, then confirm any gap from multiple full papers and their stated limitations.</div>' +
+      sourceHtml(ranked);
+    return;
+  }
+
+  const useful = ranked.filter(x=>x.score>0).slice(0,3);
+  const answer = useful.length ? useful.map(x=>x.abstract).join(" ") :
+    "The selected demo text does not contain a strong lexical match for this question.";
+  out.innerHTML = `<div class="answer"><b>Extractive answer:</b> ${esc(answer)}</div>` + sourceHtml(ranked);
+}
+
+function sourceHtml(ranked) {
+  if (!ranked.length) return "";
+  return '<div class="sources">' + ranked.map((x,i)=>`
+    <div class="source"><b>[Source ${i+1}] ${esc(x.title)}</b> · similarity ${x.score.toFixed(3)}<br>${esc(x.abstract)}</div>`
+  ).join("") + '</div>';
+}
+
+document.getElementById("countMetric").textContent = papers.length;
+document.getElementById("example").addEventListener("change", e => {
+  if (e.target.value) document.getElementById("query").value=e.target.value;
+});
+document.getElementById("searchBtn").addEventListener("click", runSearch);
+document.getElementById("askBtn").addEventListener("click", ask);
+runSearch();
+</script>
+</body>
+</html>
